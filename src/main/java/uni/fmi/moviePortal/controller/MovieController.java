@@ -120,7 +120,7 @@ public class MovieController {
 		return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
 	}
 	
-	
+	/*
 	@GetMapping(path = "/movie/filter")
 	public List<MovieBean> getAllMovies(
 			@RequestParam(value = "year", defaultValue = "0")int year,
@@ -138,6 +138,34 @@ public class MovieController {
 				  date1.getTime());
 		}
 		return movieRepo.findByReleasedateGreaterThanOrderByReleasedateDesc(date1.getTime());
+	} */
+	
+	@GetMapping(path = "/movie/filter")
+	public List<MovieBean> getAllMovies(
+			@RequestParam(value = "startReleaseDate", required = false)@DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startReleaseDate,			
+			@RequestParam(value = "endReleaseDate", required = false)@DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endReleaseDate, 
+			@RequestParam(value = "genreId", defaultValue = "0")int genreId){
+		 
+		if(startReleaseDate == null && endReleaseDate == null && genreId == 0) {
+			return movieRepo.findAll();
+		} else if(genreId > 0) {		
+			
+			if(startReleaseDate == null && endReleaseDate == null) {
+				return movieRepo.findByGenreId(genreId);
+			} else if(startReleaseDate == null) {
+				return movieRepo.findByGenreIdAndReleasedateLessThanOrderByReleasedate(genreId,endReleaseDate.getTime());
+			} else if(endReleaseDate == null) {
+				return movieRepo.findByGenreIdAndReleasedateGreaterThanOrderByReleasedateDesc(genreId, startReleaseDate.getTime());
+			} 
+			
+			return	movieRepo.findByGenreAndReleasedateBetween(genreId, startReleaseDate.getTime(), endReleaseDate.getTime());
+		} else if(startReleaseDate == null) {
+			return movieRepo.findByReleasedateLessThan(endReleaseDate.getTime());
+		} else if(endReleaseDate == null) {
+			return movieRepo.findByReleasedateGreatrThan(startReleaseDate.getTime());
+		}
+		
+		return movieRepo.findByReleasedateBetween(startReleaseDate.getTime(), endReleaseDate.getTime());
 	}
 	
 	@DeleteMapping(path = "/movie/delete")

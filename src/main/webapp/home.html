@@ -46,29 +46,26 @@
 	</div>
 	<div id="gridView" class="container-fluid">
         <div class="row filter-wrapper m-3">
-            <div class="col-md-4">
-                <label for="filter-year">Year</label>
-                <select class="custom-select" id="filter-year">
-                    <option selected disabled value="">Choose...</option>
-                    <option value="2020">2020</option>
-                    <option value="2019">2019</option>
-                    <option value="2018">2018</option>
-                    <option value="2017">2017</option>
-                    <option value="2016">2016</option>
-                    <option value="2015">2015</option>
-                    <option value="2014">2014</option>
-                    <option value="2013">2013</option>
-                    <option value="2012">2012</option>
-                </select>
+            <div class="col-md-3">
+            	<label for="title">From *</label>
+                <div class="input-group">                             
+                	<input type="date" class="form-control" id="startReleaseDate" name="startReleaseDate" placeholder="startReleaseDate">
+                </div> 
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+            	<label for="title">To </label>
+                <div class="input-group">                             
+               		<input type="date" class="form-control" id="endReleaseDate" name="endReleaseDate" placeholder="endReleaseDate">
+                </div>  
+            </div>
+            <div class="col-md-3">
                 <label for="genre">Genre</label>
                 <select class="custom-select" id="filter-genre">
                     <option selected disabled value="">Choose ...</option>                    
                 </select>
             </div>             
-            <div class="col-md-4">
-            	<button id="applyFilter" type="button" class="btn btn-dark float-right mb-3">Apply filter</button>
+            <div class="col-md-3">
+            	<button id="applyFilter" type="button" class="btn btn-dark float-left mt-4">Apply filter</button>
         	</div>
         </div>
         <div class="row m-3">             
@@ -190,6 +187,10 @@
         "/" +  this.getFullYear();
     }
     
+    String.prototype.formatMMDDYYYY = function(){
+        return this;
+    }
+    
     $(document).ready(function(){
     	function getWhoAmI(){
     		$.ajax({
@@ -309,24 +310,6 @@
             reBuildGrid(data.results);
         });
     }
-
-    const loadData = (year, genreId) => {
-        var requestUrl = "movie/filter" ;
-        if (year){ 
-        	requestUrl += "?year=" + year;
-        	if (genreId) requestUrl += "&genreId=" + genreId;
-        } else if (genreId) requestUrl += "?genreId=" + genreId;
-
-        $.ajax({
-            method: "GET",
-            url: requestUrl,
-            dataType: "json"
-        }).done(function (data) {
-        	//console.log(data);
-            moviesList = data;
-            reBuildGrid(moviesList);
-        });
-    }
     
     function getAllGenres(){ 
 		$.ajax({
@@ -390,7 +373,7 @@
     }
 
     function sortByOnChange(e) {
-        let moviesListResults = [...moviesList]; //moviesList.clone();
+        let moviesListResults = [...moviesList]; //clone
         switch (e.value) {
             case 'title.asc':
                 moviesListResults.sort((a, b) => { return sortByTitle(a, b, true); });
@@ -400,21 +383,24 @@
                 moviesListResults.sort((a, b) => { return sortByTitle(a, b, false); });
                 break;
             case 'popularity.asc':
-                moviesListResults.sort(function (a, b) { return a.popularity - b.popularity; });
+            	moviesListResults.sort(function (a, b) { return a.popularity - b.popularity > 0 ? 1 : -1; });
                 break;
             case 'popularity.desc':
                 moviesListResults.sort(function (a, b) { return a.popularity - b.popularity > 0 ? -1 : 1; });
                 break;
             case 'vote_average.asc':
-                moviesListResults.sort(function (a, b) { return a.vote_average - b.vote_average; });
+            	moviesListResults.sort(function (a, b) { return a.vote_average - b.vote_average > 0 ? 1 : -1; });
                 break;
             case 'vote_average.desc':
                 moviesListResults.sort(function (a, b) { return a.vote_average - b.vote_average > 0 ? -1 : 1; });
                 break;
             case 'release_date.asc':
-                moviesListResults.sort(function (a, b) { return 
-                	a.release_date? new Date(a.release_date) - new Date(b.release_date) :
-                		new Date(a.releasedate) - new Date(b.releasedate); });
+            	moviesListResults.sort(function (a, b) { 
+                	if(a.release_date){
+                		return new Date(a.release_date) - new Date(b.release_date) > 0 ? 1 : -1;                				
+                	}
+                			
+                	return new Date(a.releasedate) - new Date(b.releasedate) > 0 ? 1 : -1; });
                 break;
             case 'release_date.desc':
                 moviesListResults.sort(function (a, b) { 
@@ -586,11 +572,15 @@
 						moviesList.results.unshift(data);  
 						reBuildGrid(moviesList.results);  
 					} else { 
-						var index = moviesList.map(x => {
+						/*var index = moviesList.map(x => {
 							return x.id;
-						}).indexOf(id);
+						}).indexOf(id);*/
 				
-    					moviesList.splice(index, 1);
+						moviesList = $.grep(moviesList, function(e){ 
+						     return e.id != id; 
+						});
+						
+    					//moviesList.splice(index, 1);
     			
 						moviesList.unshift(data);     					
 						reBuildGrid(moviesList);  
@@ -678,12 +668,38 @@
     	}
     }
 
+    const loadData = (startReleaseDate, endReleaseDate, genreId) => {
+        var requestUrl = "movie/filter" ;
+        if (startReleaseDate){ 
+        	requestUrl += "?startReleaseDate=" + startReleaseDate;
+        	if (endReleaseDate) requestUrl += "&endReleaseDate=" + endReleaseDate;
+        	if (genreId) requestUrl += "&genreId=" + genreId;
+        } else if (endReleaseDate){ 
+        	if (endReleaseDate) requestUrl += "?endReleaseDate=" + endReleaseDate;
+        	if (genreId) requestUrl += "&genreId=" + genreId;
+        } else if (genreId) requestUrl += "?genreId=" + genreId;
+
+        $.ajax({
+            method: "GET",
+            url: requestUrl,
+            dataType: "json"
+        }).done(function (data) {
+        	console.log(data);
+            moviesList = data;
+            reBuildGrid(moviesList);
+        });
+    }
     function applyFilter() {
-        const year = $('#filter-year').val();
+    	const startReleaseDate = $('#startReleaseDate').val();
+        const endReleaseDate = $('#endReleaseDate').val();
         const genreId = $('#filter-genre').val();
         
-        if (year || genreId) {
-            loadData(year, genreId);
+        if (startReleaseDate ||endReleaseDate ||  genreId) {
+        	if(startReleaseDate && endReleaseDate && startReleaseDate > endReleaseDate){
+        		alert('From date should be earlier thane to date!');
+        	} else {
+            	loadData(startReleaseDate, endReleaseDate, genreId);
+            }
         }
     }
     
